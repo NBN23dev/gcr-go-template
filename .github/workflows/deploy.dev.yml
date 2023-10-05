@@ -1,0 +1,26 @@
+name: Deploy develop
+on:
+  push:
+    branches:
+      - develop
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER_DEV }}
+          service_account: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_NAME_DEV }}
+          audience: ${{ secrets.WORKLOAD_IDENTITY_AUDIENCE_DEV }}
+      - name: Deploy to Google Cloud Run
+        env:
+          GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID_DEV }}
+          GOOGLE_REGION: ${{ secrets.GOOGLE_REGION }}
+          SERVICE_NAME: ${{ vars.SERVICE_NAME }}
+          ENVIRONMENT: develop
+        run: sh scripts/deploy_GCR.sh
