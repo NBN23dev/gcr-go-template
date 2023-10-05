@@ -1,0 +1,1 @@
+# gcr-go-template
