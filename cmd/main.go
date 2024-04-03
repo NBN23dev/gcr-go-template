@@ -7,18 +7,18 @@ import (
 
 	adapters "github.com/NBN23dev/gcr-go-template/internal/adapters/grpc"
 	"github.com/NBN23dev/gcr-go-template/internal/core/services"
+	"github.com/NBN23dev/gcr-go-template/internal/helpers"
 	"github.com/NBN23dev/gcr-go-template/internal/plugins/logger"
 	"github.com/NBN23dev/gcr-go-template/internal/plugins/tracer"
 	"github.com/NBN23dev/gcr-go-template/internal/repositories"
 	"github.com/NBN23dev/gcr-go-template/internal/server"
-	"github.com/NBN23dev/gcr-go-template/internal/utils"
 )
 
 func main() {
-	name, _ := utils.GetEnvOr("SERVICE_NAME", "unknown")
+	name, _ := helpers.GetEnvOr("SERVICE_NAME", "unknown")
 
 	// Logger
-	logLevel, _ := utils.GetEnvOr("LOG_LEVEL", string(logger.LevelInfo))
+	logLevel, _ := helpers.GetEnvOr("LOG_LEVEL", string(logger.LevelInfo))
 
 	if err := logger.Init(name, logger.Level(logLevel)); err != nil {
 		log.Fatal(err)
@@ -61,7 +61,7 @@ func main() {
 	logger.Info(fmt.Sprintf("'%s' service it is about to start", name), nil)
 
 	// Start server
-	port, _ := utils.GetEnvOr("PORT", 8080)
+	port, _ := helpers.GetEnvOr("PORT", 8080)
 
 	server.Start(port)
 }
