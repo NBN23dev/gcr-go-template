@@ -1,0 +1,5 @@
+# CODEOWNERS file
+
+* @NBN23dev/approvers
+
+.github/ @NBN23dev/devops
