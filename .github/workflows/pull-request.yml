@@ -1,18 +1,24 @@
-name: Pull request CI
+name: Pull Request CI
 on:
   pull_request:
     branches:
       - develop
-      - master
 jobs:
   build_test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          go-version-file: internal/go.mod
-          cache: true
-          cache-dependency-path: internal/go.sum
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - name: Install module requirements
+        run: |
+          echo "https://${{ secrets.USER_GITHUB }}:${{secrets.TOKEN_GITHUB}}@github.com" > ~/.git-credentials
+          git config --global credential.helper store
+          go mod download
+      - name: Build code
+        run: go build -v ./...
       - name: Run unit tests
         run: go test -cover -v ./...

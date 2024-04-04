@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/NBN23dev/gcr-go-template/internal/plugins/tracer"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
+// eTag returns the ETag header value for a given byte slice.
 func eTag(value []byte) string {
 	hash := fmt.Sprintf("%x", sha1.Sum(value))
 
@@ -19,11 +19,7 @@ func eTag(value []byte) string {
 
 // HeadersUnary is a gRPC interceptor that adds useful headers to response.
 func HeadersUnary(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-	trace := tracer.Start(info.FullMethod)
-
 	res, err := handler(ctx, req)
-
-	defer trace.End(err)
 
 	if err == nil {
 		bytes, _ := json.Marshal(res)

@@ -1,0 +1,11 @@
+{
+  "configsLocation": "./configs",
+  "customDelimiter": "\\;",
+  "debug": true,
+  "dockerFileLocation": "./build/package",
+  "dryRun": false,
+  "serviceAccounts": {
+    "develop": "gcr-go-template@nbn23-competition-manager-dev.iam.gserviceaccount.com",
+    "production": "gcr-go-template@nbn23-competition-manager.iam.gserviceaccount.com"
+  }
+}
