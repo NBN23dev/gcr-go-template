@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,7 +10,7 @@ import (
 	"time"
 
 	adapters "github.com/NBN23dev/gcr-go-template/internal/adapters/grpc"
-	"github.com/NBN23dev/gcr-go-template/internal/adapters/grpc/interceptors"
+	"github.com/NBN23dev/gcr-go-template/internal/adapters/grpc/server/interceptors"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -45,14 +44,18 @@ func grpcHandlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Han
 
 // NewServer
 func NewServer(adapter *adapters.GRPCAdapter) (*Server, error) {
+	// Validation interceptor
+	validation, err := interceptors.ValidationUnary()
+	if err != nil {
+		return nil, err
+	}
+
 	srv := grpc.NewServer([]grpc.ServerOption{
 		grpc.ConnectionTimeout(time.Duration(10) * time.Second),
 		grpc.ChainUnaryInterceptor(
 			interceptors.MonitorUnary,
-			interceptors.ValidationUnary,
-			interceptors.HeadersUnary,
+			validation,
 		),
-		grpc.ChainStreamInterceptor(interceptors.MonitorStream),
 	}...)
 
 	// Register rpc's
@@ -71,27 +74,28 @@ func NewServer(adapter *adapters.GRPCAdapter) (*Server, error) {
 
 // Start the server and listen for incoming requests.
 func (srv *Server) Start(port int) error {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	defer cancel()
-
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(grpc.WaitForReady(true)),
 	}
 
-	conn, err := grpc.DialContext(ctx, fmt.Sprintf("localhost:%d", port), opts...)
-
+	conn, err := grpc.NewClient(fmt.Sprintf("localhost:%d", port), opts...)
 	if err != nil {
 		return err
 	}
 
 	mux := runtime.NewServeMux(
-		runtime.WithErrorHandler(unaryErrorHandler),
-		runtime.WithStreamErrorHandler(streamErrorHandler),
+		runtime.WithErrorHandler(UnaryErrorHandler),
 		runtime.WithHealthEndpointAt(health.NewHealthClient(conn), "/"),
+		runtime.WithIncomingHeaderMatcher(func(header string) (string, bool) {
+			if strings.EqualFold(header, "traceparent") {
+				return header, true
+			}
+
+			return "", false
+		}),
 		runtime.WithOutgoingHeaderMatcher(func(header string) (string, bool) {
-			if header == "trailer" {
+			if strings.EqualFold(header, "trailer") {
 				return "", false
 			}
 
@@ -100,11 +104,15 @@ func (srv *Server) Start(port int) error {
 	)
 
 	// Register rpc's handler
-	// TODO: Register GRPC service - err = pb.Register${ServiceName}ServiceHandler(ctx, mux, conn)
 
-	if err != nil {
-		return err
-	}
+	// TODO: Register GRPC service
+	// ctx, cancel := context.WithCancel(context.Background())
+	// defer cancel()
+
+	// err = pb.Register${ServiceName}ServiceHandler(ctx, mux, conn)
+	// if err != nil {
+	// 	return err
+	// }
 
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), grpcHandlerFunc(srv.gs, mux))
 }
